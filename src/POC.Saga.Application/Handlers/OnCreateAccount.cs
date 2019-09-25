@@ -16,8 +16,10 @@ namespace POC.Saga.Application.Handlers
         public async Task Consume(ConsumeContext<CreateAccount> context)
         {
             var account = Account.Create(context.Message.Email, context.Message.Password);
-            _dispatcher.Push(account);
-            await _dispatcher.DispatchAsync(context.CancellationToken);
+            //_dispatcher.Push(account);
+            //await _dispatcher.DispatchAsync(context.CancellationToken);
+            foreach (var ev in account.Events)
+                await context.Publish(ev, ev.GetType(), context.CancellationToken);
         }
     }
 }

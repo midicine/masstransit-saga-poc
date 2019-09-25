@@ -6,6 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MassTransit.Automatonymous" Version="5.5.5" />
+    <PackageReference Include="MassTransit.EntityFrameworkCore" Version="5.5.5" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\POC.Saga.Domain\POC.Saga.Domain.csproj" />
   </ItemGroup>
 

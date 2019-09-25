@@ -1,18 +1,20 @@
 ﻿using GreenPipes;
 using MassTransit;
 using MassTransit.AspNetCoreIntegration;
+using MassTransit.EntityFrameworkCoreIntegration;
+using MassTransit.EntityFrameworkCoreIntegration.Saga;
 using MassTransit.RabbitMqTransport.Topology;
-using MassTransit.Saga;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using POC.Saga.Application.Infrastructure;
 using POC.Saga.Domain.Commands;
 using POC.Saga.Infrastructure;
 using System;
-using ConfirmInvitation = POC.Saga.Application.Infrastructure.ConfirmInvitation;
+using MassTransit.Context;
+using POC.Saga.Domain.Events;
 
 namespace POC.Saga.Application
 {
@@ -37,8 +39,12 @@ namespace POC.Saga.Application
                         cfg.ReceiveEndpoint(bus, nameof(ConfirmInvitationStateMachine), e =>
                         {
                             e.PrefetchCount = 8;
+                            var dbOptionBuilder = new DbContextOptionsBuilder();
+                            dbOptionBuilder.UseSqlServer(Configuration.GetConnectionString("Core"));
                             e.StateMachineSaga(new ConfirmInvitationStateMachine(),
-                                new InMemorySagaRepository<ConfirmInvitation>());
+                                EntityFrameworkSagaRepository<ConfirmInvitationSaga>.CreateOptimistic(
+                                    new DelegateSagaDbContextFactory<ConfirmInvitationSaga>(() =>
+                                        new SagaDbContext<ConfirmInvitationSaga, ConfirmInvitationMapping>(dbOptionBuilder.Options))));
                             e.UseMessageRetry(r => r.Incremental(3,
                                     TimeSpan.FromSeconds(5),
                                     TimeSpan.FromSeconds(5))

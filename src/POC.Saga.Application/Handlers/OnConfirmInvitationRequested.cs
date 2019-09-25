@@ -1,6 +1,6 @@
 ﻿using MassTransit;
-using POC.Saga.Domain.Events;
 using POC.Saga.Infrastructure;
+using POC.Saga.Infrastructure.Events;
 using System.Threading.Tasks;
 
 namespace POC.Saga.Application.Handlers
@@ -16,7 +16,11 @@ namespace POC.Saga.Application.Handlers
         {
             // GET invitation from repository, get email
 
-            _dispatcher.Push(new InvitationValidated(context.Message.InvitationId, "hapica@gmail.com"));
+            _dispatcher.Push(new InvitationValidated(
+                context.Message.RequestId,
+                context.Message.InvitationId,
+                "hapica@gmail.com",
+                context.Message.Password));
             await _dispatcher.DispatchAsync(context.CancellationToken);
         }
     }

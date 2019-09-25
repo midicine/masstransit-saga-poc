@@ -1,4 +1,6 @@
-﻿namespace POC.Saga.Domain.Commands
+﻿using System;
+
+namespace POC.Saga.Domain.Commands
 {
     public class CreateAccount
     {

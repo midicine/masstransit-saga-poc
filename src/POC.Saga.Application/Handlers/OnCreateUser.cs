@@ -1,4 +1,5 @@
-﻿using MassTransit;
+﻿using System;
+using MassTransit;
 using POC.Saga.Domain;
 using POC.Saga.Domain.Commands;
 using POC.Saga.Infrastructure;
@@ -17,6 +18,7 @@ namespace POC.Saga.Application.Handlers
         {
             var user = User.Create(context.Message.Email);
             _dispatcher.Push(user);
+            //if (user != null) throw new Exception("test exception");
             await _dispatcher.DispatchAsync(context.CancellationToken);
         }
     }
