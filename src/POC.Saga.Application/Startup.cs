@@ -13,7 +13,9 @@ using Microsoft.Extensions.DependencyInjection;
 using POC.Saga.Domain.Commands;
 using POC.Saga.Infrastructure;
 using System;
+using GreenPipes.Specifications;
 using MassTransit.Context;
+using Microsoft.AspNetCore.Http;
 using POC.Saga.Domain.Events;
 
 namespace POC.Saga.Application
@@ -26,7 +28,7 @@ namespace POC.Saga.Application
 
         public void ConfigureServices(IServiceCollection services)
             => services
-                .AddScoped<IEventDispatcher, EventDispatcher>()
+                .AddSingleton<IHttpContextAccessor, HttpContextAccessor>()
                 .AddMassTransit(
                     provider => Bus.Factory.CreateUsingRabbitMq(cfg =>
                     {
@@ -35,6 +37,19 @@ namespace POC.Saga.Application
                             h.Username(Configuration["MessageBus:Username"]);
                             h.Password(Configuration["MessageBus:Password"]);
                         });
+                        
+                        cfg.ConfigurePublish(config => config.UseExecute(ctx =>
+                        {
+                            if (ctx.ConversationId.HasValue) return;
+                            ctx.ConversationId = Guid.NewGuid();
+                            services
+                                .BuildServiceProvider()
+                                .GetService<IHttpContextAccessor>()?
+                                .HttpContext?
+                                .Response?
+                                .Headers?
+                                .Add("X-Toto", $"{ctx.ConversationId}");
+                        }));
 
                         cfg.ReceiveEndpoint(bus, nameof(ConfirmInvitationStateMachine), e =>
                         {
@@ -42,9 +57,9 @@ namespace POC.Saga.Application
                             var dbOptionBuilder = new DbContextOptionsBuilder();
                             dbOptionBuilder.UseSqlServer(Configuration.GetConnectionString("Core"));
                             e.StateMachineSaga(new ConfirmInvitationStateMachine(),
-                                EntityFrameworkSagaRepository<ConfirmInvitationSaga>.CreateOptimistic(
-                                    new DelegateSagaDbContextFactory<ConfirmInvitationSaga>(() =>
-                                        new SagaDbContext<ConfirmInvitationSaga, ConfirmInvitationMapping>(dbOptionBuilder.Options))));
+                                EntityFrameworkSagaRepository<ConfirmInvitationState>.CreateOptimistic(
+                                    new DelegateSagaDbContextFactory<ConfirmInvitationState>(() =>
+                                        new SagaDbContext<ConfirmInvitationState, ConfirmInvitationMapping>(dbOptionBuilder.Options))));
                             e.UseMessageRetry(r => r.Incremental(3,
                                     TimeSpan.FromSeconds(5),
                                     TimeSpan.FromSeconds(5))

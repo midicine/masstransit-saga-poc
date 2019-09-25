@@ -8,6 +8,5 @@ namespace POC.Saga.Infrastructure.Events
         public string Email { get; set; }
         public Guid InvitationId { get; set; }
         public string Password { get; set; }
-
     }
 }

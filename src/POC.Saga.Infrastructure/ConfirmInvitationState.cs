@@ -3,7 +3,7 @@ using System;
 
 namespace POC.Saga.Infrastructure
 {
-    public class ConfirmInvitationSaga : SagaStateMachineInstance
+    public class ConfirmInvitationState : SagaStateMachineInstance
     {
         public string CurrentState { get; set; }
         public Guid CorrelationId { get; set; }

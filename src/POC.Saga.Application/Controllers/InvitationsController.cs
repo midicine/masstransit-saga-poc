@@ -4,6 +4,7 @@ using POC.Saga.Infrastructure.Events;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using MassTransit;
 
 namespace POC.Saga.Application.Controllers
 {
@@ -11,23 +12,24 @@ namespace POC.Saga.Application.Controllers
     [ApiController]
     public class InvitationsController : ControllerBase
     {
-        private readonly IEventDispatcher _dispatcher;
+        private readonly IBus _bus;
 
-        public InvitationsController(IEventDispatcher dispatcher)
-            => _dispatcher = dispatcher;
+        public InvitationsController(IBus bus)
+        {
+            _bus = bus;
+        }
 
         [HttpPost("confirm")]
         public async Task<IActionResult> Post(
             [FromBody] ConfirmInvitationRequest request,
             CancellationToken token)
         {
-            var id = Guid.NewGuid();
-            _dispatcher.Push(new ConfirmInvitationRequested(
-                id,
-                request.InvitationId,
-                request.Password));
-            await _dispatcher.DispatchAsync(token);
-            return Accepted(id);
+            await _bus.Publish(new ConfirmInvitationRequested
+            {
+                InvitationId = request.InvitationId,
+                Password = request.Password
+            }, token);
+            return Accepted();
         }
     }
 
@@ -36,6 +38,6 @@ namespace POC.Saga.Application.Controllers
     {
         public Guid InvitationId { get; set; }
         public string Password { get; set; }
-    } 
+    }
     #endregion
 }

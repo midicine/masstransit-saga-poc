@@ -6,18 +6,12 @@ using System;
 
 namespace POC.Saga.Infrastructure
 {
-    public class ConfirmInvitationStateMachine :
-        MassTransitStateMachine<ConfirmInvitationSaga>
+    public class ConfirmInvitationStateMachine : MassTransitStateMachine<ConfirmInvitationState>
     {
-        //public Event<CreateAccountRequested> CreateAccountEvent { get; private set; }
         internal Event<AccountCreated> AccountCreated { get; private set; }
         public Event<UserCreated> UserCreated { get; private set; }
         public Event<InvitationConfirmed> InvitationConfirmed { get; private set; }
         public Event<InvitationValidated> InvitationValidated { get; private set; }
-
-        public State InvitationValidatedState { get; private set; }
-        public State AccountCreatedState { get; private set; }
-        public State UserCreatedState { get; private set; }
 
         public ConfirmInvitationStateMachine()
         {
@@ -25,55 +19,55 @@ namespace POC.Saga.Infrastructure
 
             Event(() => InvitationValidated,
                 conf => conf
-                    .CorrelateBy(x => x.Email, x => x.Message.Email)
-                    .SelectId(x => x.Message.CorrelationId));
+                    .CorrelateBy<Guid>(x => x.InvitationId, x => x.Message.InvitationId)
+                    .SelectId(x => x.ConversationId.GetValueOrDefault()));
 
             Event(() => AccountCreated,
-                conf => conf.CorrelateById(x => x.Message.CorrelationId));
+                conf => conf.CorrelateById(x => x.ConversationId.GetValueOrDefault()));
 
             Event(() => UserCreated,
-                conf => conf.CorrelateById(x => x.Message.CorrelationId));
+                conf => conf.CorrelateById(x => x.ConversationId.GetValueOrDefault()));
 
             Event(() => InvitationConfirmed,
-                conf => conf.CorrelateById(x => x.Message.CorrelationId));
+                conf => conf.CorrelateById(x => x.ConversationId.GetValueOrDefault()));
 
             Initially(
                 When(InvitationValidated)
-                    .Then(context =>
+                    .Then(x =>
                     {
-                        context.Instance.Email = context.Data.Email;
-                        context.Instance.InvitationId = context.Data.InvitationId;
+                        x.Instance.Email = x.Data.Email;
+                        x.Instance.InvitationId = x.Data.InvitationId;
                     })
-                    .ThenAsync(x =>
+                    .ThenAsync(x => x.Send(new CreateAccount
                     {
-                        return x.Send(new CreateAccount
-                        {
-                            CorrelationId = x.Instance.CorrelationId,
-                            Email = x.Data.Email,
-                            Password = x.Data.Password
-                        });
-                    }),
+                        Email = x.Data.Email,
+                        Password = x.Data.Password
+                    })),
 
                 When(AccountCreated)
-                    .Then(context => { context.Instance.AccountId = context.Data.AccountId; })
+                    .Then(x =>
+                    {
+                        x.Instance.AccountId = x.Data.AccountId;
+                    })
                     .Send(x => new CreateUser
                     {
-                        CorrelationId = x.Instance.CorrelationId,
-                        Email = x.Instance.Email
+                        Email = x.Data.Email
                     }),
 
                 When(UserCreated)
-                    .Then(context => { context.Instance.UserId = context.Data.UserId; })
+                    .Then(x =>
+                    {
+                        x.Instance.UserId = x.Data.UserId;
+                    })
                     .Send(x => new DeleteInvitation
                     {
-                        CorrelationId = x.Instance.CorrelationId,
                         InvitationId = x.Instance.InvitationId
                     }),
 
                 When(InvitationConfirmed)
-                    .Then(context =>
+                    .Then(x =>
                     {
-                        context.Instance.ConfirmedDate = DateTime.UtcNow;
+                        x.Instance.ConfirmedDate = DateTime.UtcNow;
                     })
                     .Finalize()
                 );
