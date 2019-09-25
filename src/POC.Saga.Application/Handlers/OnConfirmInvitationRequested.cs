@@ -16,11 +16,13 @@ namespace POC.Saga.Application.Handlers
         {
             // GET invitation from repository, get email
 
-            _dispatcher.Push(new InvitationValidated(
-                context.Message.RequestId,
-                context.Message.InvitationId,
-                "hapica@gmail.com",
-                context.Message.Password));
+            _dispatcher.Push(new InvitationValidated
+            {
+                CorrelationId = context.Message.CorrelationId,
+                InvitationId = context.Message.InvitationId,
+                Email = "hapica@gmail.com",
+                Password = context.Message.Password
+            });
             await _dispatcher.DispatchAsync(context.CancellationToken);
         }
     }

@@ -15,7 +15,11 @@ namespace POC.Saga.Application.Handlers
 
         public async Task Consume(ConsumeContext<DeleteAccount> context)
         {
-            _dispatcher.Push(new AccountDeleted(context.Message.AccountId));
+            _dispatcher.Push(new AccountDeleted
+            {
+                AccountId = context.Message.AccountId,
+                CorrelationId = context.Message.CorrelationId
+            });
             await _dispatcher.DispatchAsync(context.CancellationToken);
         }
     }

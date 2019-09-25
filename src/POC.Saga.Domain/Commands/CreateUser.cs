@@ -1,8 +1,10 @@
-﻿namespace POC.Saga.Domain.Commands
+﻿using System;
+
+namespace POC.Saga.Domain.Commands
 {
     public class CreateUser
     {
+        public Guid CorrelationId { get; set; }
         public string Email { get; set; }
-        public CreateUser(string email) => Email = email;
     }
 }

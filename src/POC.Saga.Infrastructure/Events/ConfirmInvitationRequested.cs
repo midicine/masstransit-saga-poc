@@ -1,5 +1,5 @@
-﻿using System;
-using TEC.CoreCommon.Domain.Events;
+﻿using POC.Saga.Domain;
+using System;
 
 namespace POC.Saga.Infrastructure.Events
 {

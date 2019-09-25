@@ -1,6 +1,5 @@
 ﻿using POC.Saga.Domain.Events;
 using System;
-using TEC.CoreCommon.Domain;
 
 namespace POC.Saga.Domain
 {
@@ -16,7 +15,11 @@ namespace POC.Saga.Domain
         {
             Email = email;
             Password = password;
-            Events.Enqueue(new AccountCreated(Id, email));
+            Events.Enqueue(new AccountCreated
+            {
+                AccountId = Id,
+                Email = Email
+            });
         }
 
         public static Account Create(string email, string password)

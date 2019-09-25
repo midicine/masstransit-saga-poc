@@ -1,11 +1,10 @@
 ﻿using EnsureThat;
 using MassTransit;
+using POC.Saga.Domain;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using TEC.CoreCommon.Domain;
-using TEC.CoreCommon.Domain.Events;
 
 namespace POC.Saga.Infrastructure
 {
@@ -27,8 +26,6 @@ namespace POC.Saga.Infrastructure
         public void Push(Event domainEvent)
         {
             Ensure.Any.IsNotNull(domainEvent, nameof(domainEvent));
-            if (Events.Contains(domainEvent))
-                throw new InvalidOperationException($"Event {domainEvent.Id} already exists in the queue.");
             Events.Enqueue(domainEvent);
         }
 

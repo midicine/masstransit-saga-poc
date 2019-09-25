@@ -1,6 +1,5 @@
 ﻿using POC.Saga.Domain.Events;
 using System;
-using TEC.CoreCommon.Domain;
 
 namespace POC.Saga.Domain
 {

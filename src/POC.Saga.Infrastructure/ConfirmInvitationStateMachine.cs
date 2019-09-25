@@ -10,7 +10,7 @@ namespace POC.Saga.Infrastructure
         MassTransitStateMachine<ConfirmInvitationSaga>
     {
         //public Event<CreateAccountRequested> CreateAccountEvent { get; private set; }
-        internal Event<AccountCreatedEvent> AccountCreated { get; private set; }
+        internal Event<AccountCreated> AccountCreated { get; private set; }
         public Event<UserCreated> UserCreated { get; private set; }
         public Event<InvitationConfirmed> InvitationConfirmed { get; private set; }
         public Event<InvitationValidated> InvitationValidated { get; private set; }
@@ -26,16 +26,16 @@ namespace POC.Saga.Infrastructure
             Event(() => InvitationValidated,
                 conf => conf
                     .CorrelateBy(x => x.Email, x => x.Message.Email)
-                    .SelectId(x => x.Message.RequestId));
+                    .SelectId(x => x.Message.CorrelationId));
 
             Event(() => AccountCreated,
                 conf => conf.CorrelateById(x => x.Message.CorrelationId));
 
             Event(() => UserCreated,
-                conf => conf.CorrelateBy(x => x.Email, x => x.Message.Email));
+                conf => conf.CorrelateById(x => x.Message.CorrelationId));
 
             Event(() => InvitationConfirmed,
-                conf => conf.CorrelateBy<Guid>(x => x.InvitationId, x => x.Message.InvitationId));
+                conf => conf.CorrelateById(x => x.Message.CorrelationId));
 
             Initially(
                 When(InvitationValidated)
@@ -44,22 +44,31 @@ namespace POC.Saga.Infrastructure
                         context.Instance.Email = context.Data.Email;
                         context.Instance.InvitationId = context.Data.InvitationId;
                     })
-                    .ThenAsync(async x =>
-                        await x.Send(new CreateAccount(x.Data.Email, x.Data.Password))),
+                    .ThenAsync(x =>
+                    {
+                        return x.Send(new CreateAccount
+                        {
+                            CorrelationId = x.Instance.CorrelationId,
+                            Email = x.Data.Email,
+                            Password = x.Data.Password
+                        });
+                    }),
 
                 When(AccountCreated)
-                    .Then(context =>
+                    .Then(context => { context.Instance.AccountId = context.Data.AccountId; })
+                    .Send(x => new CreateUser
                     {
-                        context.Instance.AccountId = context.Data.AccountId;
-                    })
-                    .Send(x => new CreateUser(x.Instance.Email)),
+                        CorrelationId = x.Instance.CorrelationId,
+                        Email = x.Instance.Email
+                    }),
 
                 When(UserCreated)
-                    .Then(context =>
+                    .Then(context => { context.Instance.UserId = context.Data.UserId; })
+                    .Send(x => new DeleteInvitation
                     {
-                        context.Instance.UserId = context.Data.UserId;
-                    })
-                    .Send(x => new DeleteInvitation(x.Instance.InvitationId)),
+                        CorrelationId = x.Instance.CorrelationId,
+                        InvitationId = x.Instance.InvitationId
+                    }),
 
                 When(InvitationConfirmed)
                     .Then(context =>
@@ -70,18 +79,6 @@ namespace POC.Saga.Infrastructure
                 );
 
             SetCompletedWhenFinalized();
-        }
-
-        internal class AccountCreatedEvent : AccountCreated
-        {
-            public AccountCreatedEvent(
-                Guid correlationId,
-                Guid accountId,
-                string email)
-                : base(accountId, email)
-                => CorrelationId = correlationId;
-
-            public Guid CorrelationId { get; private set; }
         }
     }
 }

@@ -4,7 +4,7 @@ namespace POC.Saga.Domain.Commands
 {
     public class DeleteInvitation
     {
-        public Guid InvitationId { get; }
-        public DeleteInvitation(Guid invitationId) => InvitationId = invitationId;
+        public Guid CorrelationId { get; set; }
+        public Guid InvitationId { get; set; }
     }
 }
